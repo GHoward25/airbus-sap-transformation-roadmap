@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Airbus SAP Transformation Roadmap — Legacy Decommissioning & S/4HANA Upgrade</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --midnight: #0a0e27;
+            --canvas: #f5f7fa;
+            --peach: #f4a583;
+            --gold: #d4af37;
+            --melon: #ff6b6b;
+            --red: #e63946;
+            --royal: #4a148c;
+            --true-blue: #1a3a7a;
+            --sky: #0099ff;
+            
+            --primary-text: #0a0e27;
+            --secondary-text: #5a6c7d;
+            --tertiary-text: #8a9aaa;
+            --surface-light: #ffffff;
+            --surface-dark: #f5f7fa;
+            --accent: #0099ff;
+            --accent-alt: #ff6b6b;
+            --border: #e0e5ea;
+            
+            box-sizing: border-box;
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: inherit;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: Inter, Arial, sans-serif;
+            background: var(--surface-light);
+            color: var(--primary-text);
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html, body { scroll-behavior: auto; }
+            * { animation: none !important; transition: none !important; }
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--sky) 0%, var(--melon) 50%, var(--peach) 100%);
+            width: 0%;
+            z-index: 1000;
+            transition: width 0.3s ease-out;
+        }
+
+        /* Left progression panel */
+        .progression-panel {
+            position: fixed;
+            left: 0;
+            top: env(safe-area-inset-top, 0px);
+            width: 240px;
+            height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+            background: var(--midnight);
+            color: var(--canvas);
+            padding: 40px 20px;
+            overflow-y: auto;
+            z-index: 900;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .progression-panel h3 {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            color: var(--sky);
+        }
+
+        .progression-panel h3:first-child {
+            margin-top: 0;
+        }
+
+        .progression-panel .slide-item {
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 4px 0;
+            cursor: pointer;
+            color: rgba(255,255,255,0.6);
+            transition: color 0.2s ease;
+        }
+
+        .progression-panel .slide-item:hover,
+        .progression-panel .slide-item.active {
+            color: var(--sky);
+        }
+
+        /* Right dot navigation */
+        .dot-nav {
+            position: fixed;
+            right: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 900;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(10, 14, 39, 0.2);
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+            border: 1px solid rgba(10, 14, 39, 0.3);
+        }
+
+        .dot:hover {
+            transform: scale(1.2);
+        }
+
+        .dot.active {
+            background: var(--sky);
+            border-color: var(--sky);
+        }
+
+        /* Slides */
+        .slide {
+            width: 100%;
+            height: 100vh;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: env(safe-area-inset-top, 0px) 60px env(safe-area-inset-bottom, 0px) 300px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide::before,
+        .slide::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, var(--sky) 0%, transparent 100%);
+        }
+
+        .slide::before {
+            top: 0;
+        }
+
+        .slide::after {
+            bottom: 0;
+            background: linear-gradient(90deg, transparent 0%, var(--melon) 100%);
+        }
+
+        .slide.dark {
+            background: var(--midnight);
+            color: var(--canvas);
+        }
+
+        .slide.dark::before,
+        .slide.dark::after {
+            display: none;
+        }
+
+        .slide.light {
+            background: var(--surface-light);
+        }
+
+        .slide.accent {
+            background: linear-gradient(135deg, var(--midnight) 0%, rgba(10, 14, 39, 0.95) 100%);
+            color: var(--canvas);
+        }
+
+        .slide.accent::before,
+        .slide.accent::after {
+            display: none;
+        }
+
+        /* Slide content structure */
+        .slide-content {
+            position: relative;
+            z-index: 2;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .slide-content h1 {
+            font-size: 56px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .slide-content h2 {
+            font-size: 42px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 24px;
+        }
+
+        .slide-content h3 {
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 1.3;
+            margin-bottom: 12px;
+        }
+
+        .slide-content p,
+        .slide-content li {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+            color: var(--secondary-text);
+        }
+
+        .slide.dark .slide-content p,
+        .slide.dark .slide-content li,
+        .slide.accent .slide-content p,
+        .slide.accent .slide-content li {
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .slide-content ul {
+            list-style: none;
+            margin: 16px 0;
+        }
+
+        .slide-content li {
+            padding-left: 28px;
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .slide-content li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .slide.dark .slide-content li::before,
+        .slide.accent .slide-content li::before {
+            color: var(--sky);
+        }
+
+        /* Subtitle / byline */
+        .slide-subtitle {
+            font-size: 20px;
+            color: var(--tertiary-text);
+            margin-bottom: 32px;
+            font-weight: 500;
+        }
+
+        .slide.dark .slide-subtitle,
+        .slide.accent .slide-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Callout boxes */
+        .callout {
+            background: var(--surface-dark);
+            border-left: 4px solid var(--accent);
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .slide.dark .callout {
+            background: rgba(255, 255, 255, 0.08);
+            border-left-color: var(--sky);
+        }
+
+        .callout-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: var(--primary-text);
+        }
+
+        .slide.dark .callout-title,
+        .slide.accent .callout-title {
+            color: var(--canvas);
+        }
+
+        .callout-text {
+            font-size: 16px;
+            color: var(--secondary-text);
+        }
+
+        .slide.dark .callout-text,
+        .slide.accent .callout-text {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Grid layout */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .grid-item {
+            background: var(--surface-dark);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .grid-item h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+
+        .grid-item p {
+            font-size: 14px;
+            color: var(--secondary-text);
+            margin: 0;
+        }
+
+        .slide.dark .grid-item {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .slide.dark .grid-item h4 {
+            color: var(--sky);
+        }
+
+        .slide.dark .grid-item p {
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        /* Chevron */
+        .chevron {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            z-index: 800;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .chevron-text {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: var(--primary-text);
+        }
+
+        .slide.dark .chevron-text,
+        .slide.accent .chevron-text {
+            color: var(--canvas);
+        }
+
+        .chevron-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chevron-icon svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--primary-text);
+            stroke-width: 2.5;
+            fill: none;
+            animation: pulse-chevron 1.2s ease-in-out infinite;
+        }
+
+        .slide.dark .chevron-icon svg,
+        .slide.accent .chevron-icon svg {
+            stroke: var(--canvas);
+        }
+
+        @keyframes pulse-chevron {
+            0%, 100% { transform: translateY(0); opacity: 1; }
+            50% { transform: translateY(6px); opacity: 0.6; }
+        }
+
+        /* Reveal on scroll */
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        /* Sensitivity chip */
+        .sensitivity-chip {
+            position: fixed;
+            bottom: 32px;
+            left: 300px;
+            background: var(--red);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            z-index: 800;
+        }
+
+        .slide.dark .sensitivity-chip {
+            position: relative;
+            margin-top: 32px;
+            display: inline-block;
+        }
+
+        /* Cover slide special */
+        .slide-cover {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding-top: env(safe-area-inset-top, 60px);
+        }
+
+        .cover-header {
+            flex: 0;
+        }
+
+        .cover-logo {
+            width: 120px;
+            height: 40px;
+            margin-bottom: 40px;
+        }
+
+        .cover-logo svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .cover-title {
+            margin-bottom: 8px;
+        }
+
+        .cover-title h1 {
+            font-size: 48px;
+        }
+
+        .cover-subtitle {
+            font-size: 20px;
+            color: var(--tertiary-text);
+            margin-bottom: 0;
+        }
+
+        .cover-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            margin: 40px 0;
+        }
+
+        .cover-credentials {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            width: 100%;
+        }
+
+        .credential-card {
+            background: var(--surface-dark);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .credential-label {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--tertiary-text);
+            margin-bottom: 8px;
+        }
+
+        .credential-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-text);
+        }
+
+        .cover-footer {
+            flex: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 32px;
+            border-top: 1px solid var(--border);
+        }
+
+        .cover-meta {
+            font-size: 13px;
+            color: var(--tertiary-text);
+        }
+
+        /* Two-column layout */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .two-column h3 {
+            margin-top: 0;
+        }
+
+        /* Phase timeline */
+        .phase-timeline {
+            margin: 20px 0;
+        }
+
+        .phase {
+            background: var(--surface-dark);
+            border-left: 4px solid var(--accent);
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+        }
+
+        .slide.dark .phase {
+            background: rgba(255, 255, 255, 0.08);
+            border-left-color: var(--sky);
+        }
+
+        .phase-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--primary-text);
+            margin-bottom: 4px;
+        }
+
+        .slide.dark .phase-title,
+        .slide.accent .phase-title {
+            color: var(--canvas);
+        }
+
+        .phase-duration {
+            font-size: 13px;
+            color: var(--tertiary-text);
+            font-weight: 500;
+        }
+
+        .slide.dark .phase-duration,
+        .slide.accent .phase-duration {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Hide last chevron */
+        .slide:last-child .chevron {
+            display: none;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 1024px) {
+            .progression-panel {
+                width: 160px;
+                padding: 20px 12px;
+            }
+
+            .slide {
+                padding-left: 180px;
+                padding-right: 40px;
+            }
+
+            .slide-content h1 {
+                font-size: 42px;
+            }
+
+            .slide-content h2 {
+                font-size: 32px;
+            }
+
+            .two-column {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+
+            .coverage-badge {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .progression-panel {
+                display: none;
+            }
+
+            .slide {
+                padding-left: 40px;
+                padding-right: 40px;
+            }
+
+            .dot-nav {
+                display: none;
+            }
+
+            .chevron {
+                bottom: 24px;
+                right: 24px;
+            }
+
+            .sensitivity-chip {
+                left: 40px;
+            }
+
+            .slide-content h1 {
+                font-size: 32px;
+            }
+
+            .slide-content h2 {
+                font-size: 24px;
+            }
+
+            .slide-content h3 {
+                font-size: 20px;
+            }
+
+            .slide-content p,
+            .slide-content li {
+                font-size: 16px;
+            }
+
+            .cover-credentials {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar"></div>
+    
+    <div class="progression-panel">
+        <h3>POSITIONING</h3>
+        <div class="slide-item active" data-slide="0">Cover</div>
+        <div class="slide-item" data-slide="1">The Challenge</div>
+        <div class="slide-item" data-slide="2">Why This Matters</div>
+
+        <h3>WORKSTREAM 1: 4.6C</h3>
+        <div class="slide-item" data-slide="3">Phase 1: Knowledge Reconstruction</div>
+        <div class="slide-item" data-slide="4">Phase 2: Greenfield Design</div>
+        <div class="slide-item" data-slide="5">Phase 3: Integration & Decommissioning</div>
+        <div class="slide-item" data-slide="6">Spec2k Risk Assessment</div>
+
+        <h3>WORKSTREAM 2: P11</h3>
+        <div class="slide-item" data-slide="7">2025 Simplifications</div>
+        <div class="slide-item" data-slide="8">A&D Compatibility Checks</div>
+        <div class="slide-item" data-slide="9">Pre-Upgrade Audit</div>
+
+        <h3>NEXT STEPS</h3>
+        <div class="slide-item" data-slide="10">Engagement Model</div>
+        <div class="slide-item" data-slide="11">Timeline & Sequence</div>
+    </div>
+
+    <div class="dot-nav"></div>
+
+    <!-- Slide 0: Cover -->
+    <div class="slide dark slide-cover">
+        <div class="cover-header">
+            <div class="cover-logo">
+                <svg viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="dxc-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#0099ff;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#ff6b6b;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <text x="20" y="75" font-family="Inter, Arial" font-size="64" font-weight="700" fill="url(#dxc-grad)">DXC</text>
+                </svg>
+            </div>
+            <div class="cover-title">
+                <h1>Airbus SAP Transformation</h1>
+            </div>
+            <div class="cover-subtitle">Legacy Decommissioning & S/4HANA Upgrade Strategy</div>
+        </div>
+
+        <div class="cover-body">
+            <div class="cover-credentials">
+                <div class="credential-card">
+                    <div class="credential-label">Engagement Lead</div>
+                    <div class="credential-value">Gary Howard</div>
+                </div>
+                <div class="credential-card">
+                    <div class="credential-label">SAP Experience</div>
+                    <div class="credential-value">29+ Years</div>
+                </div>
+                <div class="credential-card">
+                    <div class="credential-label">A&D Expertise</div>
+                    <div class="credential-value">Rolls-Royce, BAE, Safran, MBDA</div>
+                </div>
+                <div class="credential-card">
+                    <div class="credential-label">DXC Heritage</div>
+                    <div class="credential-value">16 Years CSC / DXC</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cover-footer">
+            <div class="cover-meta">
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">SAP Advisory & Transformation</div>
+                <div>Prepared for Airbus</div>
+            </div>
+            <div class="sensitivity-chip">DXC PUBLIC</div>
+        </div>
+    </div>
+
+    <!-- Slide 1: The Challenge -->
+    <div class="slide light reveal">
+        <div class="slide-content">
+            <h2>Two Transformation Workstreams</h2>
+            <p class="slide-subtitle">Non-standard paths. Shared A&D complexity.</p>
+            
+            <div class="grid">
+                <div class="grid-item">
+                    <h4 style="color: var(--red);">📊 Workstream 1</h4>
+                    <p><strong>4.6C Direct-to-Greenfield S/4HANA</strong></p>
+                    <p style="margin-top: 8px; font-size: 13px;">Leap legacy platform → native S/4HANA. Skip the ECC6 waypoint. High risk, high reward.</p>
+                </div>
+                <div class="grid-item">
+                    <h4 style="color: var(--sky);">⚙️ Workstream 2</h4>
+                    <p><strong>P11 S/4HANA 2025 Upgrade</strong></p>
+                    <p style="margin-top: 8px; font-size: 13px;">Existing S/4HANA platform → 2025 simplifications. Spec2k compliance, ECM, QM rework.</p>
+                </div>
+            </div>
+
+            <div class="callout" style="margin-top: 32px;">
+                <div class="callout-title">Why This Approach Matters for Airbus</div>
+                <div class="callout-text">A&D manufacturing demands regulatory rigour (Spec2k), configuration precision (ECO/BOM), and supply-chain orchestration. Both workstreams must preserve compliance whilst gaining S/4HANA agility.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 2: Why This Matters -->
+    <div class="slide accent reveal">
+        <div class="slide-content">
+            <h2>The Strategic Imperatives</h2>
+            
+            <div class="phase-timeline">
+                <div class="phase">
+                    <div class="phase-title">🔧 4.6C is Legacy Debt</div>
+                    <div class="phase-duration">29-year-old platform. Undocumented. Limited vendor support path.</div>
+                </div>
+                <div class="phase">
+                    <div class="phase-title">🚀 Greenfield Leap is Ambitious</div>
+                    <div class="phase-duration">Direct jump bypasses ECC6 waypoint. Requires deep legacy knowledge reconstruction.</div>
+                </div>
+                <div class="phase">
+                    <div class="phase-title">🎯 P11 Must Survive 2025</div>
+                    <div class="phase-duration">Simplified data models, Fiori-first UIs, Cloud Integration. Not all customisations survive.</div>
+                </div>
+                <div class="phase">
+                    <div class="phase-title">✈️ Spec2k Non-Negotiable</div>
+                    <div class="phase-duration">Every process, workflow, and interface must preserve defence-grade quality & traceability.</div>
+                </div>
+            </div>
+
+            <p style="margin-top: 32px; font-size: 16px;"><strong>Gary's role:</strong> Translate 4.6C legacy knowledge into greenfield architecture. Bridge both workstreams. Architect the decommissioning roadmap.</p>
+        </div>
+    </div>
+
+    <!-- Slide 3: Phase 1 Knowledge Reconstruction -->
+    <div class="slide light reveal">
+        <div class="slide-content">
+            <h2>Phase 1: 4.6C Knowledge Reconstruction</h2>
+            <p class="slide-subtitle">Weeks 1–4: System Landscape & Process Capture</p>
+            
+            <div class="two-column">
+                <div>
+                    <h3>System Inventory</h3>
+                    <ul>
+                        <li>Complete landscape (versions, patches, kernels)</li>
+                        <li>SAP PI/XI interfaces & ALE/EDI traffic</li>
+                        <li>Custom code by module (MM, WM, PP, QM, PM)</li>
+                        <li>Solution Manager runbooks & metadata</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Business Process Capture</h3>
+                    <ul>
+                        <li>Structured observation (GPD, MRO workflows)</li>
+                        <li>BPMN model synthesis via Cowork AI</li>
+                        <li>Spec2k touchpoint mapping</li>
+                        <li>BOM/ECO/Quality gate documentation</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="callout" style="margin-top: 32px;">
+                <div class="callout-title">Gary's Leverage Point</div>
+                <div class="callout-text">Your 29 years reconstructing 4.6C legacy systems means you'll spot undocumented customisations and gap areas that newer SAP practitioners miss. This phase is your knowledge transfer into the project.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: Phase 2 Greenfield Design -->
+    <div class="slide light reveal">
+        <div class="slide-content">
+            <h2>Phase 2: Greenfield Design Strategy</h2>
+            <p class="slide-subtitle">Weeks 3–8: S/4HANA Simplifications & Spec2k Mapping</p>
+            
+            <h3>S/4HANA Simplification Assessment</h3>
+            <ul>
+                <li><strong>Manufacturing Simplification:</strong> Roles-based Fiori UIs, streamlined MM/WM/PP (no legacy IMG customising tables)</li>
+                <li><strong>MRO in S/4HANA:</strong> SAP's embedded MRO accelerator vs. bespoke—lower-code in 2025</li>
+                <li><strong>Data Model Deltas:</strong> Map R/3 4.6C → S/4HANA field migration (AFPO-KALNR, AUFNR changes)</li>
+            </ul>
+
+            <h3 style="margin-top: 24px;">Spec2k & A&D Regulatory Mapping</h3>
+            <div class="callout">
+                <div class="callout-title">Critical Question</div>
+                <div class="callout-text">Is Airbus running Spec2k compliance in *configuration* (material master, QM certifications) or in *custom Z-tables*? S/4HANA's simplified model may force re-architecture.</div>
+            </div>
+
+            <p style="margin-top: 16px; font-size: 15px;"><strong>Action:</strong> Map every 4.6C ZSPEC* or custom QM table → S/4HANA KPI / quality profile / material attribute. Document where bespoke development remains necessary.</p>
+        </div>
+    </div>
+
+    <!-- Slide 5: Phase 3 Integration & Decommissioning -->
+    <div class="slide light reveal">
+        <div class="slide-content">
+            <h2>Phase 3: Integration & Legacy Decommissioning</h2>
+            <p class="slide-subtitle">Weeks 6–10: Rationalize Interfaces & Data Migration</p>
+            
+            <h3>Legacy System Decommissioning Roadmap</h3>
+            <ul>
+                <li>Every 4.6C interface (supplier portals, MES, quality management, cost accounting) must re-point to S/4HANA or be decommissioned</li>
+                <li>Prioritise: What's Day 1 critical? What can run parallel 6–12 months?</li>
+                <li><strong>A&D Risk:</strong> Supplier notification, quality certs, deviation escalation—cannot tolerate extended parallel running</li>
+            </ul>
+
+            <h3 style="margin-top: 24px;">Data Migration Strategy</h3>
+            <p>4.6C → Greenfield has <strong>zero legacy data model continuity</strong>.</p>
+            <ul>
+                <li><strong>Migrate:</strong> Open POs, active BOMs, supplier master, quality certifications</li>
+                <li><strong>Archive:</strong> Historical transaction detail, redundant cost centre data</li>
+                <li><strong>Tools:</strong> LSMW or Fiori migration cockpit for A&D-relevant masters (Materials, BOM, Routing, Quality Plans)</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Slide 6: Spec2k Risk Assessment -->
+    <div class="slide accent reveal">
+        <div class="slide-content">
+            <h2>Spec2k Risk Assessment: 4.6C → Greenfield</h2>
+            
+            <div class="phase-timeline">
+                <div class="phase">
+                    <div class="phase-title">🔴 High Risk</div>
+                    <div class="phase-duration"><strong>QM Module Rework:</strong> Custom inspection lot logic may not map to S/4HANA 2025 quality profiles. Supplier cert generation could break.</div>
+                </div>
+                <div class="phase">
+                    <div class="phase-title">🟡 Medium Risk</div>
+                    <div class="phase-duration"><strong>ECO / Configuration Management:</strong> Multi-level BOM versioning, effectivity dating. Native S/4HANA ECM may not support all A&D nuances.</div>
+                </div>
+                <div class="phase">
+                    <div class="phase-title">🟡 Medium Risk</div>
+                    <div class="phase-duration"><strong>Deviation Workflows:</strong> 8D reports, supplier corrective action. Legacy SAP Workflow may need refactor to Fiori-native or BPM.</div>
+                </div>
+                <div class="phase">
+                    <div class="phase-title">🟢 Lower Risk</div>
+                    <div class="phase-duration"><strong>Material Master / Purchase Info:</strong> Standard SAP tables. Migrate via LSMW; validate Spec2k attributes post-cutover.</div>
+                </div>
+            </div>
+
+            <p style="margin-top: 24px; font-size: 15px;"><strong>Mitigation:</strong> Create "Business Criticality Heat Map" early. Document every process where greenfield simplifications might break A&D compliance. This is your risk register for executive governance.</p>
+        </div>
+    </div>
+
+    <!-- Slide 7: P11 2025 Simplifications -->
+    <div class="slide light reveal">
+        <div class="slide-content">
+            <h2>P11 S/4HANA 2025 Simplifications</h2>
+            <p class="slide-subtitle">Assuming upgrade from 2021/2022 → 2025 intra-instance</p>
+            
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr style="border-bottom: 2px solid var(--border);">
+                        <th style="text-align: left; padding: 12px; font-weight: 600; color: var(--primary-text);">Feature</th>
+                        <th style="text-align: left; padding: 12px; font-weight: 600; color: var(--primary-text);">A&D Impact</th>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px;"><strong>QM Consolidation</strong></td>
+                        <td style="padding: 12px;">Custom inspection workflows may not port. Supplier cert generation risky.</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px;"><strong>Fiori-First MRO</strong></td>
+                        <td style="padding: 12px;">Custom deviation handling may not expose in Fiori. SAPUI5 extensions needed.</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px;"><strong>PP / GPD Tightening</strong></td>
+                        <td style="padding: 12px;">No multi-level subcontracting quirks allowed. Complex A&D sequences need refactor.</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px;"><strong>Material Master MAST</strong></td>
+                        <td style="padding: 12px;">MARC/MARA denormalised → unified. Z-fields need migration to extension fields.</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px;"><strong>DB Table Compression</strong></td>
+                        <td style="padding: 12px;">Fewer tables, analytical fields instead. Custom indexes on Z-tables will break.</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px;"><strong>Cloud Integration</strong></td>
+                        <td style="padding: 12px;">SAP PI/XI deprecated. Must migrate to SAP Integration Suite. Test Spec2k EDI.</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: P11 A&D Compatibility -->
+    <div class="slide light reveal">
+        <div class="slide-content">
+            <h2>P11 2025 Upgrade: A&D Compatibility Checks</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+                <div style="background: var(--surface-dark); padding: 20px; border-radius: 8px; border-left: 3px solid var(--red);">
+                    <div style="font-weight: 600; color: var(--primary-text); margin-bottom: 8px;">1. Spec2k Compliance Encoding</div>
+                    <p style="font-size: 14px; color: var(--secondary-text); margin: 0;">If via QM module: inspection plan format tightens. Can cert generation still produce Spec2k-compliant documents? If via Material Attributes: INFO records (EKPO) simplified; legacy fields must migrate to purchase agreements.</p>
+                </div>
+
+                <div style="background: var(--surface-dark); padding: 20px; border-radius: 8px; border-left: 3px solid var(--melon);">
+                    <div style="font-weight: 600; color: var(--primary-text); margin-bottom: 8px;">2. ECM / Configuration Management</div>
+                    <p style="font-size: 14px; color: var(--secondary-text); margin: 0;">S/4HANA 2025 ECM is optional. Does Airbus run custom Z-ECO logic? Native ECM may not support multi-level BOM version cascading, date-based effectivity.</p>
+                </div>
+
+                <div style="background: var(--surface-dark); padding: 20px; border-radius: 8px; border-left: 3px solid var(--sky);">
+                    <div style="font-weight: 600; color: var(--primary-text); margin-bottom: 8px;">3. Supplier Quality & Deviation</div>
+                    <p style="font-size: 14px; color: var(--secondary-text); margin: 0;">2025 QM Deviation is tighter. A&D 8D reports, supplier corrective action workflows—do they survive? External quality portals for supplier submission—still supported?</p>
+                </div>
+
+                <div style="background: var(--surface-dark); padding: 20px; border-radius: 8px; border-left: 3px solid var(--gold);">
+                    <div style="font-weight: 600; color: var(--primary-text); margin-bottom: 8px;">4. Costing & MTO/ETO</div>
+                    <p style="font-size: 14px; color: var(--secondary-text); margin: 0;">A&D is highly MTO/ETO (low-volume, high-complexity). 2025 simplified costing. Can job costing & project cost accounting migrate cleanly?</p>
+                </div>
+
+                <div style="background: var(--surface-dark); padding: 20px; border-radius: 8px; border-left: 3px solid var(--peach);">
+                    <div style="font-weight: 600; color: var(--primary-text); margin-bottom: 8px;">5. Integration (PI/XI → Cloud)</div>
+                    <p style="font-size: 14px; color: var(--secondary-text); margin: 0;">If P11 runs SAP PI for supplier exchange (ASN, quality certs): can Spec2k XML/EDI transmit natively via Integration Suite? Or does custom mapping logic need refactoring?</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 9: Pre-Upgrade Audit -->
+    <div class="slide accent reveal">
+        <div class="slide-content">
+            <h2>P11 2025: Pre-Upgrade Audit Roadmap</h2>
+            
+            <h3 style="color: var(--canvas); margin-bottom: 24px;">Three Parallel Work Streams</h3>
+
+            <div class="phase-timeline">
+                <div class="phase">
+                    <div class="phase-title" style="color: var(--canvas);">🧪 Sandbox Testing</div>
+                    <div class="phase-duration">Test QM, MRO, ECM, Costing workflows on 2025 sandbox. Identify breakages early. Document refactoring scope.</div>
+                </div>
+                <div class="phase">
+                    <div class="phase-title" style="color: var(--canvas);">🔄 Integration Readiness</div>
+                    <div class="phase-duration">Agree on Cloud Integration migration plan. Test Spec2k EDI / XML transmission natively. Confirm supplier interface continuity pre-upgrade.</div>
+                </div>
+                <div class="phase">
+                    <div class="phase-title" style="color: var(--canvas);">📋 Custom Code Inventory</div>
+                    <div class="phase-duration">Classify all Z-objects: "migrate to S/4HANA native," "refactor," or "deprecate." Remove custom indexes on Z-tables before upgrade.</div>
+                </div>
+            </div>
+
+            <p style="margin-top: 32px; font-size: 15px; color: rgba(255,255,255,0.9);"><strong>Timeline:</strong> Complete audit 8–12 weeks pre-upgrade. Allows 4–6-week remediation window for high-risk custom code refactoring.</p>
+        </div>
+    </div>
+
+    <!-- Slide 10: Engagement Model -->
+    <div class="slide light reveal">
+        <div class="slide-content">
+            <h2>DXC Engagement Model: Accelerated Discovery</h2>
+            <p class="slide-subtitle">Cowork AI + Gary's Legacy Expertise = Compressed Timeline</p>
+            
+            <div class="grid">
+                <div class="grid-item">
+                    <h4 style="color: var(--sky);">📊 Cowork Discovery</h4>
+                    <p>Structured observation sessions synthesised into BPMN models via AI. Faster than manual process documentation.</p>
+                </div>
+                <div class="grid-item">
+                    <h4 style="color: var(--melon);">🔍 Legacy Assessment</h4>
+                    <p>Gary reconstructs 4.6C knowledge. Spots undocumented customisations. Maps to S/4HANA simplifications.</p>
+                </div>
+                <div class="grid-item">
+                    <h4 style="color: var(--peach);">⚙️ Accelerator Library</h4>
+                    <p>SAP-native MRO, manufacturing, quality accelerators. Lower-code starting points for Airbus designs.</p>
+                </div>
+                <div class="grid-item">
+                    <h4 style="color: var(--gold);">🛡️ A&D Risk Governance</h4>
+                    <p>Business Criticality Heat Map. Spec2k Risk Register. Pre-engagement compliance framework.</p>
+                </div>
+            </div>
+
+            <div class="callout" style="margin-top: 32px;">
+                <div class="callout-title">Expected Outcomes</div>
+                <div class="callout-text">
+                    <strong>4.6C Workstream:</strong> 8–10 week discovery (vs. 16–20 weeks traditional) | 
+                    <strong>P11 Workstream:</strong> 4–6 week audit (vs. 10–12 weeks traditional) | 
+                    <strong>Both:</strong> Executable roadmap & risk registers ready for governance gate within 12 weeks.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 11: Timeline & Sequence -->
+    <div class="slide light reveal">
+        <div class="slide-content">
+            <h2>Recommended Sequence & Timeline</h2>
+            
+            <h3>Month 1: 4.6C Knowledge Reconstruction</h3>
+            <ul>
+                <li>Week 1–2: System landscape & interface inventory (Gary + Airbus IT)</li>
+                <li>Week 3–4: BPMN capture & Cowork synthesis (GPD, MRO, QM workflows)</li>
+            </ul>
+
+            <h3 style="margin-top: 20px;">Months 2–3: Parallel Tracks</h3>
+            <ul>
+                <li><strong>Track A (4.6C):</strong> Greenfield design strategy, Spec2k mapping, Phase 1–2 completion</li>
+                <li><strong>Track B (P11):</strong> Pre-upgrade audit, sandbox testing, custom code inventory</li>
+            </ul>
+
+            <h3 style="margin-top: 20px;">Month 3: Integration & Governance</h3>
+            <ul>
+                <li>Interface decommissioning roadmap (4.6C)</li>
+                <li>Data migration strategy (4.6C)</li>
+                <li>Pre-upgrade remediation plan (P11)</li>
+                <li><strong>Executive Gate:</strong> Business Criticality Heat Map & Risk Registers approved</li>
+            </ul>
+
+            <div class="callout" style="margin-top: 24px;">
+                <div class="callout-title">Parallel vs. Sequential?</div>
+                <div class="callout-text">Both workstreams can run in parallel. P11 audit is lower-risk, faster (4–6 weeks). 4.6C discovery is heavier, 8–10 weeks. Recommend: Start both Week 1, gate P11 audit by Week 8, complete 4.6C roadmap by Week 12.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chevron">
+        <span class="chevron-text">Next</span>
+        <div class="chevron-icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+        </div>
+    </div>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const slideItems = document.querySelectorAll('.progression-panel .slide-item');
+        const dots = document.querySelectorAll('.dot-nav');
+        const progressBar = document.querySelector('.progress-bar');
+        let currentSlide = 0;
+
+        // Create dots
+        slides.forEach((_, i) => {
+            const dot = document.createElement('div');
+            dot.className = `dot ${i === 0 ? 'active' : ''}`;
+            dot.addEventListener('click', () => goToSlide(i));
+            dots[0].appendChild(dot);
+        });
+
+        const dotElements = document.querySelectorAll('.dot');
+
+        function goToSlide(index) {
+            currentSlide = Math.max(0, Math.min(index, slides.length - 1));
+            slides[currentSlide].scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function updateProgress() {
+            const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrolled = (window.scrollY / scrollHeight) * 100;
+            progressBar.style.width = scrolled + '%';
+
+            // Update active slide
+            let activeIndex = Math.floor((window.scrollY + window.innerHeight / 2) / window.innerHeight);
+            activeIndex = Math.max(0, Math.min(activeIndex, slides.length - 1));
+
+            slideItems.forEach((item, i) => {
+                item.classList.toggle('active', i === activeIndex);
+            });
+
+            dotElements.forEach((dot, i) => {
+                dot.classList.toggle('active', i === activeIndex);
+            });
+
+            // Reveal on scroll
+            slides.forEach(slide => {
+                const revealElements = slide.querySelectorAll('.reveal');
+                revealElements.forEach(el => {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.top < window.innerHeight * 0.75) {
+                        el.classList.add('active');
+                    }
+                });
+            });
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
+                goToSlide(currentSlide + 1);
+            } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+                goToSlide(currentSlide - 1);
+            } else if (e.key === 'End') {
+                goToSlide(slides.length - 1);
+            } else if (e.key === 'Home') {
+                goToSlide(0);
+            }
+        });
+
+        // Chevron click
+        document.querySelector('.chevron').addEventListener('click', () => {
+            goToSlide(currentSlide + 1);
+        });
+
+        window.addEventListener('scroll', updateProgress);
+        updateProgress();
+
+        // Initial reveal
+        slides[0].querySelectorAll('.reveal').forEach(el => {
+            el.classList.add('active');
+        });
+    </script>
+</body>
+</html>
